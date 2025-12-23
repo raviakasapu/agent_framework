@@ -1,0 +1,44 @@
+/* Fix sidebar - make it sticky */
+.wy-nav-side {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    overflow-y: auto;
+}
+
+.wy-side-scroll {
+    position: relative;
+    overflow-y: auto;
+    height: 100%;
+}
+
+/* Ensure content area doesn't overlap */
+.wy-nav-content-wrap {
+    margin-left: 300px;
+}
+
+/* Keep sidebar TOC in view */
+.wy-menu-vertical {
+    width: 100%;
+}
+
+/* Smooth scrolling for the sidebar */
+.wy-side-nav-search, .wy-menu-vertical {
+    scroll-behavior: smooth;
+}
+
+/* Highlight current section in sidebar */
+.wy-menu-vertical li.current > a {
+    background: #2980b9;
+    color: #fff;
+}
+
+.wy-menu-vertical li.current li a {
+    background: transparent;
+}
+
+.wy-menu-vertical li.current li a:hover {
+    background: #d6d6d6;
+}
+
