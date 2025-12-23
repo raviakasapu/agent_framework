@@ -1,0 +1,97 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentic-framework"
+version = "0.1.0"
+description = "A reusable Python library for building hierarchical agentic AI workflows"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [
+    {name = "Akasa AI", email = "team@akasa.ai"}
+]
+maintainers = [
+    {name = "Akasa AI", email = "team@akasa.ai"}
+]
+keywords = [
+    "agents",
+    "ai",
+    "llm",
+    "agentic",
+    "framework",
+    "hierarchical",
+    "orchestration",
+    "openai",
+    "langchain-alternative"
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+]
+
+dependencies = [
+    "pydantic>=2.0",
+    "openai>=1.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0",
+    "httpx>=0.24",
+]
+
+[project.optional-dependencies]
+google = ["google-generativeai>=0.3"]
+observability = [
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+]
+all = [
+    "google-generativeai>=0.3",
+    "opentelemetry-api>=1.20",
+    "opentelemetry-sdk>=1.20",
+]
+dev = [
+    "pytest>=7.0",
+    "pytest-asyncio>=0.21",
+    "black>=23.0",
+    "ruff>=0.1",
+    "mypy>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/akasa-ai/agentic-framework"
+Documentation = "https://agentic-framework.readthedocs.io"
+Repository = "https://github.com/akasa-ai/agentic-framework"
+Changelog = "https://github.com/akasa-ai/agentic-framework/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["agent_framework*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.yaml", "*.txt", "py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true
+

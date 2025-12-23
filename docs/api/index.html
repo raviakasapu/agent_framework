@@ -1,0 +1,238 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>API Reference &mdash; AI Agent Framework 2.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=b21de401"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Power BI Dashboard Editor Implementation" href="../powerbi_impl/index.html" />
+    <link rel="prev" title="Migration Guide" href="../part7_reference/migration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            AI Agent Framework
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Part 1: Orientation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part1_orientation/index.html">Part 1: Orientation &amp; Quick Wins</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 2: Runtime Building Blocks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part2_runtime/index.html">Part 2: Runtime Building Blocks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 3: Building Solutions</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part3_solutions/index.html">Part 3: Building Solutions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 4: Extensibility Cookbook</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part4_cookbook/index.html">Part 4: Extensibility Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 5: Operating the Framework</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part5_operations/index.html">Part 5: Operating the Framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 6: Domain Playbooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../part6_playbooks/index.html">Part 6 - Domain Playbooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 7: Reference</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../part7_reference/index.html">Part 7: Reference &amp; Appendices</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#framework-generic-library">Framework (Generic Library)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#core-classes">Core Classes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#decorators">Decorators</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#planners">Planners</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#memory">Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#message-store-memory">Message Store Memory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gateways">Gateways</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#policies">Policies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#services">Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#observability">Observability</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#progress-filters">Progress Filters</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prompt-managers">Prompt Managers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#flows">Flows</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#utilities">Utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#deployment-layer">Deployment Layer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bi-tools-domain-example">BI Tools (Domain Example)</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Services</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tools">Tools</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Power BI Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../powerbi_impl/index.html">Power BI Dashboard Editor Implementation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../tutorials/index.html">Tutorials</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Legacy Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../guides/index.html">Legacy Guides</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">AI Agent Framework</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">API Reference</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/api/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="api-reference">
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
+<p>This reference documents the public API of the Agent Framework library.</p>
+<section id="framework-generic-library">
+<h2>Framework (Generic Library)<a class="headerlink" href="#framework-generic-library" title="Link to this heading"></a></h2>
+<section id="core-classes">
+<h3>Core Classes<a class="headerlink" href="#core-classes" title="Link to this heading"></a></h3>
+</section>
+<section id="decorators">
+<h3>Decorators<a class="headerlink" href="#decorators" title="Link to this heading"></a></h3>
+</section>
+<section id="planners">
+<h3>Planners<a class="headerlink" href="#planners" title="Link to this heading"></a></h3>
+</section>
+<section id="memory">
+<h3>Memory<a class="headerlink" href="#memory" title="Link to this heading"></a></h3>
+</section>
+<section id="message-store-memory">
+<h3>Message Store Memory<a class="headerlink" href="#message-store-memory" title="Link to this heading"></a></h3>
+</section>
+<section id="gateways">
+<h3>Gateways<a class="headerlink" href="#gateways" title="Link to this heading"></a></h3>
+</section>
+<section id="policies">
+<h3>Policies<a class="headerlink" href="#policies" title="Link to this heading"></a></h3>
+</section>
+<section id="services">
+<h3>Services<a class="headerlink" href="#services" title="Link to this heading"></a></h3>
+</section>
+<section id="observability">
+<h3>Observability<a class="headerlink" href="#observability" title="Link to this heading"></a></h3>
+</section>
+<section id="progress-filters">
+<h3>Progress Filters<a class="headerlink" href="#progress-filters" title="Link to this heading"></a></h3>
+</section>
+<section id="prompt-managers">
+<h3>Prompt Managers<a class="headerlink" href="#prompt-managers" title="Link to this heading"></a></h3>
+</section>
+<section id="flows">
+<h3>Flows<a class="headerlink" href="#flows" title="Link to this heading"></a></h3>
+</section>
+<section id="utilities">
+<h3>Utilities<a class="headerlink" href="#utilities" title="Link to this heading"></a></h3>
+</section>
+</section>
+<section id="deployment-layer">
+<h2>Deployment Layer<a class="headerlink" href="#deployment-layer" title="Link to this heading"></a></h2>
+</section>
+<section id="bi-tools-domain-example">
+<h2>BI Tools (Domain Example)<a class="headerlink" href="#bi-tools-domain-example" title="Link to this heading"></a></h2>
+<p>These modules demonstrate how to extend the framework for a specific domain (Power BI).</p>
+<section id="id1">
+<h3>Services<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+</section>
+<section id="tools">
+<h3>Tools<a class="headerlink" href="#tools" title="Link to this heading"></a></h3>
+<p>Domain-specific tools are organized by category:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.column</span></code> - Column operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.measure</span></code> - DAX measure operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.relationship</span></code> - Relationship management</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.table</span></code> - Table operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.sql</span></code> - SQL query operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.partition</span></code> - Partition management</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.mquery</span></code> - M Query operations</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.metadata</span></code> - Metadata access</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">bi_tools.tools.model</span></code> - Model operations</p></li>
+</ul>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../part7_reference/migration.html" class="btn btn-neutral float-left" title="Migration Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../powerbi_impl/index.html" class="btn btn-neutral float-right" title="Power BI Dashboard Editor Implementation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Project Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

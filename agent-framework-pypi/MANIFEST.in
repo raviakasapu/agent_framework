@@ -1,0 +1,5 @@
+include LICENSE
+include README.md
+include src/agent_framework/py.typed
+recursive-include src/agent_framework *.yaml *.txt
+

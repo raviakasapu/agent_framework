@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Framework Guide &mdash; AI Agent Framework 2.2.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=b21de401"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            AI Agent Framework
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Part 1: Orientation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part1_orientation/index.html">Part 1: Orientation &amp; Quick Wins</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 2: Runtime Building Blocks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part2_runtime/index.html">Part 2: Runtime Building Blocks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 3: Building Solutions</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part3_solutions/index.html">Part 3: Building Solutions</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 4: Extensibility Cookbook</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part4_cookbook/index.html">Part 4: Extensibility Cookbook</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 5: Operating the Framework</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part5_operations/index.html">Part 5: Operating the Framework</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 6: Domain Playbooks</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part6_playbooks/index.html">Part 6 - Domain Playbooks</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Part 7: Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="part7_reference/index.html">Part 7: Reference &amp; Appendices</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api/index.html">API Reference</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Power BI Implementation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="powerbi_impl/index.html">Power BI Dashboard Editor Implementation</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="tutorials/index.html">Tutorials</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Legacy Guides</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="guides/index.html">Legacy Guides</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">AI Agent Framework</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Framework Guide</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/framework_guide.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="framework-guide">
+<h1>Framework Guide<a class="headerlink" href="#framework-guide" title="Link to this heading"></a></h1>
+<p>The AI Agent Framework is a <strong>reusable Python library</strong> for building agentic AI systems.
+This guide provides an overview of core concepts, architecture, and how to get started.</p>
+<section id="library-architecture">
+<h2>Library Architecture<a class="headerlink" href="#library-architecture" title="Link to this heading"></a></h2>
+<p>The framework is split into two parts:</p>
+<dl class="simple">
+<dt><strong>Generic Library</strong> (<code class="docutils literal notranslate"><span class="pre">agent-framework-pypi/src/agent_framework/</span></code>)</dt><dd><p>Pip-installable package containing reusable components:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Agent</span></code>, <code class="docutils literal notranslate"><span class="pre">ManagerAgent</span></code> - Core agent classes</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">BaseTool</span></code>, <code class="docutils literal notranslate"><span class="pre">BasePlanner</span></code>, <code class="docutils literal notranslate"><span class="pre">BaseMemory</span></code> - Base classes for extension</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">EventBus</span></code> - Observability and event system</p></li>
+<li><p>Policy system for behavior control</p></li>
+<li><p>LLM gateways (OpenAI, Google AI)</p></li>
+</ul>
+</dd>
+<dt><strong>Application Code</strong> (e.g., <code class="docutils literal notranslate"><span class="pre">bi_tools/</span></code>)</dt><dd><p>Domain-specific implementations:</p>
+<ul class="simple">
+<li><p>Custom tools for your domain</p></li>
+<li><p>Domain services and data models</p></li>
+<li><p>Application-specific configurations</p></li>
+</ul>
+</dd>
+</dl>
+</section>
+<section id="core-concepts">
+<h2>Core Concepts<a class="headerlink" href="#core-concepts" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Agent</strong>: A stateful decision-maker that processes input, plans steps, invokes tools, and produces results.</p></li>
+<li><p><strong>Tools</strong>: Typed operations the agent can invoke. Inherit from <code class="docutils literal notranslate"><span class="pre">BaseTool</span></code>.</p></li>
+<li><p><strong>Memory</strong>: Conversation and long-term context stores.</p></li>
+<li><p><strong>Planner</strong>: Strategy for selecting the next action (ReAct, Router, Strategic, etc.).</p></li>
+<li><p><strong>Policy</strong>: Behavior control (completion detection, termination, HITL, loop prevention).</p></li>
+<li><p><strong>Events</strong>: Structured traces for observability and debugging.</p></li>
+</ul>
+</section>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">agent_framework</span><span class="w"> </span><span class="kn">import</span> <span class="n">Agent</span><span class="p">,</span> <span class="n">ManagerAgent</span><span class="p">,</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">agent_framework.gateways.inference</span><span class="w"> </span><span class="kn">import</span> <span class="n">OpenAIGateway</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">deployment.factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentFactory</span>
+
+<span class="c1"># Create agent from YAML</span>
+<span class="n">agent</span> <span class="o">=</span> <span class="n">AgentFactory</span><span class="o">.</span><span class="n">create_from_yaml</span><span class="p">(</span><span class="s2">&quot;configs/agents/my_agent.yaml&quot;</span><span class="p">)</span>
+
+<span class="c1"># Run the agent</span>
+<span class="n">result</span> <span class="o">=</span> <span class="n">agent</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="s2">&quot;Your task here&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="creating-custom-tools">
+<h2>Creating Custom Tools<a class="headerlink" href="#creating-custom-tools" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Define the tool class</strong>:</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">agent_framework</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseTool</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">pydantic</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseModel</span>
+
+<span class="k">class</span><span class="w"> </span><span class="nc">MyTool</span><span class="p">(</span><span class="n">BaseTool</span><span class="p">):</span>
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="s2">&quot;my_tool&quot;</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">description</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> <span class="k">return</span> <span class="s2">&quot;Does something useful&quot;</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;result&quot;</span><span class="p">:</span> <span class="s2">&quot;success&quot;</span><span class="p">}</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="2">
+<li><p><strong>Register via YAML</strong> (<code class="docutils literal notranslate"><span class="pre">configs/tools/my_tool.yaml</span></code>):</p></li>
+</ol>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">MyTool</span>
+<span class="nt">class</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">my_app.tools.MyTool</span>
+</pre></div>
+</div>
+<ol class="arabic simple" start="3">
+<li><p><strong>Or register dynamically</strong>:</p></li>
+</ol>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">deployment.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">register_tool</span>
+<span class="n">register_tool</span><span class="p">(</span><span class="s2">&quot;MyTool&quot;</span><span class="p">,</span> <span class="n">MyTool</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="configuration-yaml">
+<h2>Configuration (YAML)<a class="headerlink" href="#configuration-yaml" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Tools</strong>: Names map to registered implementations</p></li>
+<li><p><strong>Model</strong>: LLM provider and parameters</p></li>
+<li><p><strong>Memory</strong>: Conversation history, shared state</p></li>
+<li><p><strong>Policies</strong>: Behavior control settings</p></li>
+<li><p><strong>Environment</strong>: Secrets via env vars</p></li>
+</ul>
+</section>
+<section id="deploy-and-serve">
+<h2>Deploy and Serve<a class="headerlink" href="#deploy-and-serve" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>API Server</strong>: Expose endpoints that run agents</p></li>
+<li><p><strong>Manifest</strong>: Generate machine-readable tool descriptions</p></li>
+<li><p><strong>Docs</strong>: Serve Sphinx HTML alongside the manifest</p></li>
+</ul>
+</section>
+<section id="references">
+<h2>References<a class="headerlink" href="#references" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><span class="xref std std-doc">guides/library_architecture</span> - Detailed library architecture</p></li>
+<li><p><span class="xref std std-doc">guides/quickstart</span> - 5-minute quickstart</p></li>
+<li><p><span class="xref std std-doc">guides/creating_a_custom_tool</span> - Tool creation guide</p></li>
+<li><p><a class="reference internal" href="tutorials/index.html"><span class="doc">Tutorials</span></a> - Step-by-step tutorials</p></li>
+<li><p><a class="reference internal" href="api/index.html"><span class="doc">API Reference</span></a> - API Reference</p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2025, Project Authors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
