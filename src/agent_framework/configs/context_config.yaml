@@ -1,0 +1,226 @@
+# Context Configuration Schema
+# Controls what context is included in prompts and how it's formatted
+#
+# This configuration can be overridden per-planner or via environment variables.
+# ENV variables take precedence over YAML config.
+
+kind: ContextConfig
+version: "1.0"
+
+metadata:
+  name: default-context-config
+  description: Default context configuration for all planners
+
+spec:
+  # Global defaults (can be overridden per-planner)
+  defaults:
+    # Truncation limits (in characters)
+    truncation:
+      strategic_plan: 2000
+      director_context: 4000
+      data_model_context: 6000
+      observation: 1500
+      tool_args: 500
+      previous_output: 5000
+      manifest: 6000
+
+    # History settings
+    history:
+      max_conversation_turns: 10
+      max_execution_traces: 20
+      include_conversation: true
+      include_traces: true
+      include_global_updates: true
+
+    # Logging
+    log_truncation: true
+    log_truncation_level: INFO  # DEBUG, INFO, WARNING
+
+  # Per-planner configuration (inherits from defaults)
+  planners:
+    # Orchestrator-level planners
+    strategic:
+      truncation:
+        director_context: 4000
+        data_model_context: 4000
+      history:
+        max_conversation_turns: 8
+        include_traces: false  # Orchestrator doesn't need execution traces
+      context_sections:
+        - name: director_context
+          enabled: true
+          position: 1
+        - name: data_model_context
+          enabled: true
+          position: 2
+        - name: conversation_history
+          enabled: true
+          position: 3
+        - name: task
+          enabled: true
+          position: 4
+
+    # Router planner
+    router:
+      truncation:
+        strategic_plan: 1000
+        director_context: 2000
+      history:
+        max_conversation_turns: 20
+        include_traces: false
+      context_sections:
+        - name: strategic_plan
+          enabled: true
+          position: 1
+        - name: director_context
+          enabled: true
+          position: 2
+        - name: conversation_history
+          enabled: true
+          position: 3
+        - name: available_workers
+          enabled: true
+          position: 4
+        - name: task
+          enabled: true
+          position: 5
+
+    # Worker-level ReAct planner
+    react:
+      truncation:
+        strategic_plan: 1500
+        director_context: 3000
+        observation: 1000
+        tool_args: 500
+      history:
+        max_conversation_turns: 5
+        max_execution_traces: 15
+        include_conversation: true
+        include_traces: true
+        include_global_updates: true
+      context_sections:
+        - name: strategic_plan
+          enabled: true
+          position: 1
+        - name: director_context
+          enabled: true
+          position: 2
+        - name: available_tools
+          enabled: true
+          position: 3
+        - name: execution_history
+          enabled: true
+          position: 4
+          # Fine-grained control for execution history
+          include:
+            - action_tool_name      # Include tool name
+            - action_args_summary   # Summarized args (not full)
+            - observation_truncated # Truncated observation
+          exclude:
+            - action_args_full      # Exclude full args (can be huge)
+            - raw_llm_response      # Exclude raw LLM response
+        - name: task
+          enabled: true
+          position: 5
+
+    # Manager decomposer planner
+    decomposer:
+      truncation:
+        strategic_plan: 2000
+        previous_output: 5000
+        data_model_context: 2000
+      history:
+        max_conversation_turns: 0  # Manager doesn't need conversation
+        include_traces: false
+      context_sections:
+        - name: orchestrator_phase
+          enabled: true
+          position: 1
+        - name: previous_outputs
+          enabled: true
+          position: 2
+          max_outputs: 3
+        - name: data_model_context
+          enabled: true
+          position: 3
+        - name: available_workers
+          enabled: true
+          position: 4
+        - name: task
+          enabled: true
+          position: 5
+
+    # Manager script planner
+    script:
+      truncation:
+        previous_output: 5000
+      history:
+        max_conversation_turns: 0
+        include_traces: false
+      context_sections:
+        - name: director_goal
+          enabled: true
+          position: 1
+        - name: phase_info
+          enabled: true
+          position: 2
+        - name: previous_outputs
+          enabled: true
+          position: 3
+          max_outputs: 2
+        - name: worker_catalog
+          enabled: true
+          position: 4
+        - name: task
+          enabled: true
+          position: 5
+
+    # Simple chat planner (minimal context)
+    chat:
+      truncation: {}
+      history:
+        max_conversation_turns: 20
+        include_traces: false
+        include_global_updates: false
+      context_sections:
+        - name: conversation_history
+          enabled: true
+          position: 1
+        - name: task
+          enabled: true
+          position: 2
+
+# Environment variable mappings
+# These ENV vars override the YAML config when set
+env_overrides:
+  # Global truncation
+  AGENT_STRATEGIC_PLAN_TRUNCATE_LEN: defaults.truncation.strategic_plan
+  AGENT_DIRECTOR_CONTEXT_TRUNCATE_LEN: defaults.truncation.director_context
+  AGENT_DATA_MODEL_CONTEXT_TRUNCATE_LEN: defaults.truncation.data_model_context
+  AGENT_OBSERVATION_TRUNCATE_LEN: defaults.truncation.observation
+  AGENT_TOOL_ARGS_TRUNCATE_LEN: defaults.truncation.tool_args
+  AGENT_PREVIOUS_OUTPUT_TRUNCATE_LEN: defaults.truncation.previous_output
+
+  # Global history
+  AGENT_MAX_CONVERSATION_TURNS: defaults.history.max_conversation_turns
+  AGENT_MAX_EXECUTION_TRACES: defaults.history.max_execution_traces
+  AGENT_INCLUDE_CONVERSATION: defaults.history.include_conversation
+  AGENT_INCLUDE_TRACES: defaults.history.include_traces
+  AGENT_INCLUDE_GLOBAL_UPDATES: defaults.history.include_global_updates
+
+  # Logging
+  AGENT_LOG_TRUNCATION: defaults.log_truncation
+
+  # Per-planner overrides (existing + new)
+  AGENT_REACT_OBS_TRUNCATE_LEN: planners.react.truncation.observation
+  AGENT_REACT_INCLUDE_HISTORY: planners.react.history.include_conversation
+  AGENT_REACT_INCLUDE_TRACES: planners.react.history.include_traces
+  AGENT_REACT_INCLUDE_GLOBAL_UPDATES: planners.react.history.include_global_updates
+  AGENT_REACT_MAX_HISTORY_MESSAGES: planners.react.history.max_execution_traces
+
+  AGENT_ROUTER_MAX_HISTORY_MESSAGES: planners.router.history.max_conversation_turns
+  AGENT_ROUTER_INCLUDE_HISTORY: planners.router.history.include_conversation
+  AGENT_ROUTER_STRATEGIC_PLAN_TRUNCATE_LEN: planners.router.truncation.strategic_plan
+
+  AGENT_ORCHESTRATOR_MAX_HISTORY_TURNS: planners.strategic.history.max_conversation_turns
+  STRATEGIC_INCLUDE_HISTORY_WITH_DIRECTOR: planners.strategic.history.include_conversation

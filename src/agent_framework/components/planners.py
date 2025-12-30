@@ -216,6 +216,19 @@ class StrategicPlanner(BasePlanner):
         self.planning_prompt = planning_prompt or self._default_planning_prompt()
         self.history_filter = history_filter or OrchestratorHistoryFilter()
         self.logger = get_logger()
+
+        # Load context configuration (YAML + ENV overrides)
+        from ..services.context_config import get_context_config
+        self._context_config = get_context_config()
+        config = self._context_config.get_planner_config("strategic")
+
+        # Truncation limits
+        self._director_context_truncate_len: int = config.truncation.director_context
+        self._data_model_context_truncate_len: int = config.truncation.data_model_context
+
+        # History settings
+        self._max_conversation_turns: int = config.history.max_conversation_turns
+        self._include_conversation: bool = config.history.include_conversation
     
     def _parse_script_response(self, response: Union[str, Dict[str, Any], ScriptPlan]) -> Optional[ScriptPlan]:
         if isinstance(response, ScriptPlan):
@@ -281,24 +294,34 @@ Return JSON:
 
         context_parts = []
         if director_context:
-            context_parts.append(f"DIRECTOR CONTEXT:\n{str(director_context)[:4000]}")
+            truncated_director = self._context_config.truncate_with_logging(
+                str(director_context),
+                self._director_context_truncate_len,
+                "director_context",
+                "strategic"
+            )
+            context_parts.append(f"DIRECTOR CONTEXT:\n{truncated_director}")
         if data_model_context:
-            context_parts.append(f"DATA MODEL CONTEXT:\n{str(data_model_context)[:4000]}")
+            truncated_data_model = self._context_config.truncate_with_logging(
+                str(data_model_context),
+                self._data_model_context_truncate_len,
+                "data_model_context",
+                "strategic"
+            )
+            context_parts.append(f"DATA MODEL CONTEXT:\n{truncated_data_model}")
         if context_parts:
             messages.append({"role": "system", "content": "\n\n".join(context_parts)})
         
         # Filter history using hierarchical filter (orchestrator gets conversation summary only)
-        import os as _os
-        include_conv = True
-        if director_context:
-            try:
-                include_conv = str(_os.getenv("STRATEGIC_INCLUDE_HISTORY_WITH_DIRECTOR", "false")).lower() in {"1", "true", "yes"}
-            except Exception:
-                include_conv = False
-        
+        # Use config value (which already incorporates ENV override)
+        include_conv = self._include_conversation
+        if director_context and not include_conv:
+            # When director_context is present and config says don't include, skip history
+            pass  # include_conv is already False
+
         if include_conv:
             # Use history filter to get appropriate history for orchestrator role
-            filter_context = {"role": "orchestrator", "max_conversation_turns": 8}
+            filter_context = {"role": "orchestrator", "max_conversation_turns": self._max_conversation_turns}
             filtered_history = self.history_filter.filter_for_prompt(history, filter_context)
             
             # Build messages from filtered conversation history only
@@ -443,12 +466,18 @@ class WorkerRouterPlanner(BasePlanner):
         self.log_details = log_details if log_details is not None else env_flag
         self.logger = get_logger()
 
-        # Optional env-based history controls for router prompts
-        self._include_history: bool = os.getenv("AGENT_ROUTER_INCLUDE_HISTORY", "true").lower() in {"1", "true", "yes"}
-        try:
-            self._max_history: int = int(os.getenv("AGENT_ROUTER_MAX_HISTORY_MESSAGES", "20"))
-        except Exception:
-            self._max_history = 20
+        # Load context configuration (YAML + ENV overrides)
+        from ..services.context_config import get_context_config
+        self._context_config = get_context_config()
+        config = self._context_config.get_planner_config("router")
+
+        # History controls from config (incorporates ENV overrides)
+        self._include_history: bool = config.history.include_conversation
+        self._max_history: int = config.history.max_conversation_turns
+
+        # Truncation limits
+        self._strategic_plan_truncate_len: int = config.truncation.strategic_plan
+        self._director_context_truncate_len: int = config.truncation.director_context
 
     def plan(self, task_description: str, history: List[Dict[str, Any]]) -> Union[Action, FinalResponse]:
         # 1) Apply heuristic rules first
@@ -497,7 +526,7 @@ class WorkerRouterPlanner(BasePlanner):
 
     def _build_prompt(self, task: str, history: List[Dict[str, Any]]) -> List[Dict[str, str]]:
         options = ", ".join(self.worker_keys)
-        
+
         # Include strategic plan/context if available to improve routing
         strategic_plan = get_from_context("strategic_plan")
         director_context = get_from_context("context") or ""
@@ -505,11 +534,24 @@ class WorkerRouterPlanner(BasePlanner):
         if strategic_plan:
             try:
                 import json as _json
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{_json.dumps(strategic_plan, indent=2)[:800]}\n"
+                plan_str = _json.dumps(strategic_plan, indent=2)
             except Exception:
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{str(strategic_plan)[:800]}\n"
+                plan_str = str(strategic_plan)
+            truncated_plan = self._context_config.truncate_with_logging(
+                plan_str,
+                self._strategic_plan_truncate_len,
+                "strategic_plan",
+                "router"
+            )
+            plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{truncated_plan}\n"
         if director_context:
-            plan_block += f"\nDIRECTOR CONTEXT: {director_context}\n"
+            truncated_director = self._context_config.truncate_with_logging(
+                str(director_context),
+                self._director_context_truncate_len,
+                "director_context",
+                "router"
+            )
+            plan_block += f"\nDIRECTOR CONTEXT: {truncated_director}\n"
 
         messages = [
             {"role": "system", "content": f"{self.system_prompt}\n{plan_block}"}
@@ -652,32 +694,28 @@ class ReActPlanner(BasePlanner):
         # Store LLM's termination signal from most recent plan() call
         self._last_is_final_step: Optional[bool] = None
 
-        # Env-driven prompt controls (defaults preserve existing behavior)
-        def _flag(name: str, default: bool) -> bool:
-            val = os.getenv(name)
-            if val is None:
-                return default
-            return str(val).lower() in {"1", "true", "yes"}
-
-        def _int(name: str, default: Optional[int]) -> Optional[int]:
-            try:
-                val = os.getenv(name)
-                if val is None or str(val).strip() == "":
-                    return default
-                return int(str(val).strip())
-            except Exception:
-                return default
+        # Load context configuration (YAML + ENV overrides)
+        from ..services.context_config import get_context_config
+        self._context_config = get_context_config()
+        config = self._context_config.get_planner_config("react")
 
         # Whether to include any prior history items (conversation turns)
-        self._include_history: bool = _flag("AGENT_REACT_INCLUDE_HISTORY", True)
+        self._include_history: bool = config.history.include_conversation
         # Whether to include execution traces (action/observation, global_observation)
-        self._include_traces: bool = _flag("AGENT_REACT_INCLUDE_TRACES", True)
+        self._include_traces: bool = config.history.include_traces
         # Whether to include global updates in prompts
-        self._include_global_updates: bool = _flag("AGENT_REACT_INCLUDE_GLOBAL_UPDATES", True)
+        self._include_global_updates: bool = config.history.include_global_updates
         # Cap the number of history entries appended (None = unlimited)
-        self._max_history: Optional[int] = _int("AGENT_REACT_MAX_HISTORY_MESSAGES", None)
-        # Truncate observation/global_observation payloads when rendering (applies to text + function-calling)
-        self._obs_truncate_len: int = _int("AGENT_REACT_OBS_TRUNCATE_LEN", 1000) or 1000
+        self._max_history: Optional[int] = config.history.max_execution_traces if config.history.max_execution_traces > 0 else None
+        # Truncate observation/global_observation payloads when rendering
+        self._obs_truncate_len: int = config.truncation.observation
+        # Truncate strategic plan
+        self._strategic_plan_truncate_len: int = config.truncation.strategic_plan
+        # Truncate director context
+        self._director_context_truncate_len: int = config.truncation.director_context
+        # Truncate tool args
+        self._tool_args_truncate_len: int = config.truncation.tool_args
+
         # History filter for hierarchical filtering (worker gets current turn only)
         from ..policies.history_filters import WorkerHistoryFilter
         self.history_filter = history_filter or WorkerHistoryFilter()
@@ -821,24 +859,32 @@ class ReActPlanner(BasePlanner):
         # Filter history using hierarchical filter (worker gets current turn only)
         filter_context = {"role": "worker"}
         filtered_history = self.history_filter.filter_for_prompt(history, filter_context)
-        
+
         tools_str = "\n".join([
             f"- {t['name']}: {t.get('description', '')} (args: {t.get('args', [])})"
             for t in self.tool_descriptions
         ])
-        
-        # Inject strategic plan/context if available
+
+        # Inject strategic plan/context if available (with configurable truncation)
         strategic_plan = get_from_context("strategic_plan")
         director_context = get_from_context("context") or ""
         plan_block = ""
         if strategic_plan:
-            try:
-                import json as _json
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{_json.dumps(strategic_plan, indent=2)[:1500]}\n"
-            except Exception:
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{str(strategic_plan)[:1500]}\n"
+            plan_content = self._context_config.truncate_json_with_logging(
+                strategic_plan,
+                self._strategic_plan_truncate_len,
+                "strategic_plan",
+                "react"
+            )
+            plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{plan_content}\n"
         if director_context:
-            plan_block += f"\nDIRECTOR CONTEXT: {director_context}\n"
+            truncated_context = self._context_config.truncate_with_logging(
+                str(director_context),
+                self._director_context_truncate_len,
+                "director_context",
+                "react"
+            )
+            plan_block += f"\nDIRECTOR CONTEXT: {truncated_context}\n"
 
         # Build gated history string from filtered history
         history_lines: List[str] = []
@@ -861,14 +907,19 @@ class ReActPlanner(BasePlanner):
                         continue
                     content = entry.get("content", "")
                     if isinstance(content, dict):
-                        try:
-                            import json as _json
-                            content = _json.dumps(content)
-                        except Exception:
-                            content = str(content)
-                    content_s = str(content)
-                    if len(content_s) > self._obs_truncate_len:
-                        content_s = content_s[: self._obs_truncate_len] + "... (truncated)"
+                        content_s = self._context_config.truncate_json_with_logging(
+                            content,
+                            self._obs_truncate_len,
+                            "observation",
+                            "react"
+                        )
+                    else:
+                        content_s = self._context_config.truncate_with_logging(
+                            str(content),
+                            self._obs_truncate_len,
+                            "observation",
+                            "react"
+                        )
                     history_lines.append(f"Observation: {content_s}")
 
         # Apply max history cap (keep tail)
@@ -1089,19 +1140,27 @@ class ReActPlanner(BasePlanner):
         # Filter history using hierarchical filter (worker gets current turn only)
         filter_context = {"role": "worker"}
         filtered_history = self.history_filter.filter_for_prompt(history, filter_context)
-        
-        # Inject strategic plan/context if available
+
+        # Inject strategic plan/context if available (with configurable truncation)
         strategic_plan = get_from_context("strategic_plan")
         director_context = get_from_context("context") or ""
         plan_block = ""
         if strategic_plan:
-            try:
-                import json as _json
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{_json.dumps(strategic_plan, indent=2)[:1500]}\n"
-            except Exception:
-                plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{str(strategic_plan)[:1500]}\n"
+            plan_content = self._context_config.truncate_json_with_logging(
+                strategic_plan,
+                self._strategic_plan_truncate_len,
+                "strategic_plan",
+                "react_fc"
+            )
+            plan_block = f"\nSTRATEGIC PLAN (from orchestrator/manager):\n{plan_content}\n"
         if director_context:
-            plan_block += f"\nDIRECTOR CONTEXT: {director_context}\n"
+            truncated_context = self._context_config.truncate_with_logging(
+                str(director_context),
+                self._director_context_truncate_len,
+                "director_context",
+                "react_fc"
+            )
+            plan_block += f"\nDIRECTOR CONTEXT: {truncated_context}\n"
 
         messages: List[Dict[str, str]] = [
             {"role": "system", "content": f"{self.system_prompt}\n{plan_block}"}
@@ -1122,9 +1181,16 @@ class ReActPlanner(BasePlanner):
                         continue
                     tool_name = entry.get("tool")
                     args = entry.get("args", {})
+                    # Truncate tool args if configured
+                    args_str = self._context_config.truncate_json_with_logging(
+                        args,
+                        self._tool_args_truncate_len,
+                        "tool_args",
+                        "react_fc"
+                    )
                     history_msgs.append({
                         "role": "assistant",
-                        "content": f"Calling tool: {tool_name} with args: {json.dumps(args)}"
+                        "content": f"Calling tool: {tool_name} with args: {args_str}"
                     })
                 elif t in (OBSERVATION, GLOBAL_OBSERVATION):
                     if not self._include_traces:
@@ -1132,15 +1198,20 @@ class ReActPlanner(BasePlanner):
                     if t == GLOBAL_OBSERVATION and not self._include_global_updates:
                         continue
                     content = entry.get("content", "")
-                    if isinstance(content, str):
-                        s = content
+                    if isinstance(content, dict):
+                        s = self._context_config.truncate_json_with_logging(
+                            content,
+                            self._obs_truncate_len,
+                            "observation",
+                            "react_fc"
+                        )
                     else:
-                        try:
-                            s = json.dumps(content)
-                        except Exception:
-                            s = str(content)
-                    if len(s) > self._obs_truncate_len:
-                        s = s[: self._obs_truncate_len] + "... (truncated)"
+                        s = self._context_config.truncate_with_logging(
+                            str(content),
+                            self._obs_truncate_len,
+                            "observation",
+                            "react_fc"
+                        )
                     history_msgs.append({"role": "user", "content": f"Tool result: {s}"})
 
         if isinstance(self._max_history, int) and self._max_history > 0:
@@ -1368,6 +1439,20 @@ class StrategicDecomposerPlanner(BasePlanner):
         from ..policies.history_filters import ManagerHistoryFilter
         self.history_filter = history_filter or ManagerHistoryFilter()
         self.logger = get_logger()
+
+        # Load context configuration (YAML + ENV overrides)
+        from ..services.context_config import get_context_config
+        self._context_config = get_context_config()
+        config = self._context_config.get_planner_config("decomposer")
+
+        # Truncation limits
+        self._strategic_plan_truncate_len: int = config.truncation.strategic_plan
+        self._previous_output_truncate_len: int = config.truncation.previous_output
+        self._data_model_context_truncate_len: int = config.truncation.data_model_context
+
+        # History settings
+        self._max_conversation_turns: int = config.history.max_conversation_turns
+        self._include_traces: bool = config.history.include_traces
     
     def _default_planning_prompt(self) -> str:
         return """You are a manager planner creating execution steps for a domain-specific task.
@@ -1673,15 +1758,27 @@ Return JSON:
             context_parts.append("IMPORTANT: The following outputs contain ACTUAL DATA from previous manager analysis.")
             context_parts.append("Use this data directly in your step planning - do not assume data needs to be re-queried.")
             for idx, output in enumerate(reversed(previous_outputs), 1):
-                # Include full output (may contain actual data) - don't truncate too much
-                context_parts.append(f"\nPrevious Manager Output {idx}:\n{str(output)[:5000]}")
+                # Include full output (may contain actual data) - use config for truncation
+                truncated_output = self._context_config.truncate_with_logging(
+                    str(output),
+                    self._previous_output_truncate_len,
+                    f"previous_output_{idx}",
+                    "decomposer"
+                )
+                context_parts.append(f"\nPrevious Manager Output {idx}:\n{truncated_output}")
         
         # Add data model context (same as StrategicPlanner)
         try:
             from ..services.request_context import get_from_context as _ctx
             data_model_context = _ctx("data_model_context")
             if data_model_context:
-                context_parts.append(f"\nDATA MODEL CONTEXT:\n{str(data_model_context)[:2000]}")
+                truncated_data_model = self._context_config.truncate_with_logging(
+                    str(data_model_context),
+                    self._data_model_context_truncate_len,
+                    "data_model_context",
+                    "decomposer"
+                )
+                context_parts.append(f"\nDATA MODEL CONTEXT:\n{truncated_data_model}")
         except Exception:
             pass
         
@@ -1808,6 +1905,14 @@ class ManagerScriptPlanner(BasePlanner):
             inference_gateway=inference_gateway,
             manager_worker_key=manager_worker_key,
         )
+
+        # Load context configuration (YAML + ENV overrides)
+        from ..services.context_config import get_context_config
+        self._context_config = get_context_config()
+        config = self._context_config.get_planner_config("script")
+
+        # Truncation limits
+        self._previous_output_truncate_len: int = config.truncation.previous_output
 
     def _parse_script_response(self, response: Union[str, Dict[str, Any], ScriptPlan]) -> Optional[ScriptPlan]:
         if isinstance(response, ScriptPlan):
@@ -2007,9 +2112,16 @@ class ManagerScriptPlanner(BasePlanner):
                     if actual_data:
                         try:
                             import json as _json
-                            output_parts.append(_json.dumps(actual_data, indent=2)[:5000])
+                            data_str = _json.dumps(actual_data, indent=2)
                         except Exception:
-                            output_parts.append(str(actual_data)[:5000])
+                            data_str = str(actual_data)
+                        truncated_data = self._context_config.truncate_with_logging(
+                            data_str,
+                            self._previous_output_truncate_len,
+                            "previous_output_data",
+                            "script"
+                        )
+                        output_parts.append(truncated_data)
                     if output_parts:
                         synthesized_outputs.append("\n\n".join(output_parts))
             elif entry_type in {"final", "assistant_message", "manager_result"}:
