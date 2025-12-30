@@ -121,9 +121,9 @@ class Agent:
         if progress_handler:
             await progress_handler.on_event("agent_start", start_data)
 
-        self.memory.add({"type": TASK, "content": task})
+        await self.memory.add({"type": TASK, "content": task})
         if script:
-            self.memory.add({
+            await self.memory.add({
                 "type": SCRIPT_INSTRUCTION,
                 "content": {
                     "metadata": script_metadata or {},
@@ -133,11 +133,11 @@ class Agent:
         planner_task = task
         if suggested_plan and not script:
             plan_text = self._format_suggested_plan(suggested_plan)
-            self.memory.add({"type": SUGGESTED_PLAN, "content": suggested_plan})
+            await self.memory.add({"type": SUGGESTED_PLAN, "content": suggested_plan})
             planner_task = self._augment_task_with_plan(task, plan_text)
 
         ctx_for_application = normalized_exec_context if normalized_exec_context is not None else execution_context
-        self._apply_execution_context(ctx_for_application)
+        await self._apply_execution_context(ctx_for_application)
 
         # Build context for policies
         try:
@@ -177,15 +177,16 @@ class Agent:
             # FIX: Skip on iteration 1 - on first iteration, we haven't executed anything
             # for THIS task yet. Any completed observations are from PREVIOUS agent runs
             # in the same job and should not cause early termination.
-            if iteration_count > 1 and self.memory.get_history():
+            history = await self.memory.get_history()
+            if iteration_count > 1 and history:
                 last_action = next(
-                    (entry for entry in reversed(self.memory.get_history()) if entry.get("type") == "action"),
+                    (entry for entry in reversed(history) if entry.get("type") == "action"),
                     None
                 )
                 if last_action and last_action.get("tool") == "complete_task":
                     # Last action was complete_task - check if we have a final result
                     last_obs = next(
-                        (entry for entry in reversed(self.memory.get_history()) if entry.get("type") == "observation"),
+                        (entry for entry in reversed(history) if entry.get("type") == "observation"),
                         None
                     )
                     if last_obs:
@@ -201,11 +202,11 @@ class Agent:
                                 return await self._handle_final_response(final_response, progress_handler)
             
             # Plan next action
-            plan_outcome = self.planner.plan(planner_task, self.memory.get_history())
-            
+            plan_outcome = self.planner.plan(planner_task, history)
+
             # Check termination policy (includes max_iterations, FinalResponse, completion)
             if self.termination_policy.should_terminate(
-                iteration_count, plan_outcome, self.memory.get_history(), policy_context
+                iteration_count, plan_outcome, history, policy_context
             ):
                 if isinstance(plan_outcome, FinalResponse):
                     return await self._handle_final_response(plan_outcome, progress_handler)
@@ -222,7 +223,7 @@ class Agent:
             # Check if planner is trying to plan complete_task again (shouldn't happen, but safety check)
             if any(isinstance(a, Action) and a.tool_name == "complete_task" for a in actions):
                 # If we already executed complete_task, don't execute it again
-                if any(entry.get("tool") == "complete_task" for entry in self.memory.get_history() if entry.get("type") == "action"):
+                if any(entry.get("tool") == "complete_task" for entry in history if entry.get("type") == "action"):
                     return await self._create_completion_response(
                         "Task already completed. Stopping execution.",
                         progress_handler
@@ -300,22 +301,22 @@ class Agent:
             
             # Record actions and observations
             for action, result in zip(actions, results):
-                self.memory.add({
+                await self.memory.add({
                     "type": ACTION,
                     "tool": action.tool_name,
                     "args": action.tool_args
                 })
-                
+
                 # Format observation
                 if isinstance(result, dict) and result.get("error"):
                     error_obs = (
                         f"❌ ERROR: Tool '{action.tool_name}' failed!\n"
                         f"Error: {result.get('error_message', 'Unknown error')}"
                     )
-                    self.memory.add({"type": OBSERVATION, "content": error_obs})
+                    await self.memory.add({"type": OBSERVATION, "content": error_obs})
                     observation_history.append(error_obs)
                 else:
-                    self.memory.add({"type": OBSERVATION, "content": result})
+                    await self.memory.add({"type": OBSERVATION, "content": result})
                     observation_history.append(str(result))
                 
                 # Special handling: complete_task tool should immediately terminate
@@ -345,9 +346,11 @@ class Agent:
                             return await self._handle_final_response(final_response, progress_handler)
             
             # Check completion after observation (this is the right place to check)
+            # Re-fetch history after adding new observations
+            history = await self.memory.get_history()
             last_result = results[-1] if results else None
             if last_result and self.completion_detector.is_complete(
-                last_result, self.memory.get_history(), policy_context
+                last_result, history, policy_context
             ):
                 # Convert tool results to appropriate FinalResponse format
                 last_action = actions[-1] if actions else None
@@ -433,7 +436,7 @@ class Agent:
         progress_handler: Optional[BaseProgressHandler]
     ) -> Dict[str, Any]:
         """Handle FinalResponse from planner."""
-        self.memory.add({"type": FINAL, "content": final_response.human_readable_summary})
+        await self.memory.add({"type": FINAL, "content": final_response.human_readable_summary})
         
         end_data = build_agent_end_event(
             agent_name=self.name,
@@ -477,7 +480,7 @@ class Agent:
         stagnation: bool = False
     ) -> Dict[str, Any]:
         """Create error response."""
-        self.memory.add({"type": ERROR, "content": message})
+        await self.memory.add({"type": ERROR, "content": message})
         
         error_response = FinalResponse(
             operation="display_message",
@@ -512,13 +515,13 @@ class Agent:
         except Exception:
             return {"assembled_context": "Context provided but could not be serialized."}
 
-    def _apply_execution_context(self, execution_context: Optional[Any]) -> None:
+    async def _apply_execution_context(self, execution_context: Optional[Any]) -> None:
         """Persist injected execution context for planners and tools."""
         normalized = self._normalize_execution_context(execution_context)
         if not normalized:
             return
         try:
-            self.memory.add({"type": INJECTED_CONTEXT, "content": normalized})
+            await self.memory.add({"type": INJECTED_CONTEXT, "content": normalized})
         except Exception:
             pass
 
@@ -605,7 +608,7 @@ class Agent:
             self.event_bus.publish("action_planned", planned_data)
             if progress_handler:
                 await progress_handler.on_event("action_planned", planned_data)
-            self.memory.add({
+            await self.memory.add({
                 "type": ACTION,
                 "tool": tool_name,
                 "step": step_name,
@@ -622,7 +625,7 @@ class Agent:
                 result_payload: Any = {"error": str(result)}
             else:
                 result_payload = result
-            self.memory.add({
+            await self.memory.add({
                 "type": OBSERVATION,
                 "content": result_payload,
                 "step": step_name,
@@ -693,7 +696,7 @@ class Agent:
         self.event_bus.publish("error", err_data)
         if progress_handler:
             await progress_handler.on_event("error", err_data)
-        self.memory.add({"type": ERROR, "content": msg})
+        await self.memory.add({"type": ERROR, "content": msg})
         
         return await self._create_error_response(msg, progress_handler)
 
