@@ -78,11 +78,11 @@ class BaseTool(ABC):
 
 class BaseMemory(ABC):
     @abstractmethod
-    def add(self, message: Dict[str, Any]) -> None:
+    async def add(self, message: Dict[str, Any]) -> None:
         raise NotImplementedError
 
     @abstractmethod
-    def get_history(self) -> List[Dict[str, Any]]:
+    async def get_history(self) -> List[Dict[str, Any]]:
         raise NotImplementedError
 
 

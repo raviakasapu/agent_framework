@@ -38,20 +38,20 @@ class MessageStoreMemory(BaseMemory):
         self._location = location
         self._agent_key = agent_key
     
-    def add(self, message: Dict[str, Any]) -> None:
+    async def add(self, message: Dict[str, Any]) -> None:
         """Add a message to the store.
-        
+
         Note: This is a no-op for message store memory. Implementations should
         write directly to their store. The framework will read messages via get_history().
-        
+
         For backward compatibility, this method exists but does nothing.
         If you need runtime message storage, use SharedInMemoryMemory instead.
         """
         # No-op: Implementation manages the store
         # Framework reads via get_history() which calls the store
         pass
-    
-    def get_history(self) -> List[Dict[str, Any]]:
+
+    async def get_history(self) -> List[Dict[str, Any]]:
         """Get history by reading from the message store.
         
         Returns messages in the order expected by the framework:
@@ -100,21 +100,21 @@ class HierarchicalMessageStoreMemory(MessageStoreMemory):
         super().__init__(message_store, location, agent_key)
         self._subordinates = subordinates or []
     
-    def get_history(self) -> List[Dict[str, Any]]:
+    async def get_history(self) -> List[Dict[str, Any]]:
         """Get history including subordinate agent messages."""
         history = []
-        
+
         # Get conversation messages
         conversation = self._message_store.get_conversation_messages(self._location)
         history.extend(conversation)
-        
+
         # Get manager's own messages
         manager_msgs = self._message_store.get_agent_messages(
             self._location,
             self._agent_key
         )
         history.extend(manager_msgs)
-        
+
         # Get subordinate messages
         if self._subordinates:
             team_msgs = self._message_store.get_team_messages(
@@ -122,10 +122,10 @@ class HierarchicalMessageStoreMemory(MessageStoreMemory):
                 self._subordinates
             )
             history.extend(team_msgs)
-        
+
         # Get global messages
         global_msgs = self._message_store.get_global_messages(self._location)
         history.extend(global_msgs)
-        
+
         return history
 

@@ -130,7 +130,7 @@ Return a final_response JSON with your analysis."""
         context: Optional[str] = None
     ) -> Dict[str, Any]:
         """Execute task with policy-driven behavior control."""
-        self.memory.add({"type": TASK, "content": task})
+        await self.memory.add({"type": TASK, "content": task})
         
         # Get job_id from context (implementation-specific)
         job_id: Optional[str] = None
@@ -144,7 +144,7 @@ Return a final_response JSON with your analysis."""
         
         # If strategic plan provided, add to memory for context
         if strategic_plan:
-            self.memory.add({"type": STRATEGIC_PLAN, "content": strategic_plan})
+            await self.memory.add({"type": STRATEGIC_PLAN, "content": strategic_plan})
             update_request_context(strategic_plan=strategic_plan)
             # Persist plan in job store if provided
             try:
@@ -181,7 +181,7 @@ Return a final_response JSON with your analysis."""
         elif context:
             context_text = context
 
-        self._inject_context(context_text, manifest_text)
+        await self._inject_context(context_text, manifest_text)
         plan_summary = None
         manager_tools = None
         if not self._is_orchestrator():
@@ -219,7 +219,8 @@ Return a final_response JSON with your analysis."""
         }
 
         # Ask manager's planner to decide
-        decision = self.planner.plan(task, self.memory.get_history())
+        history = await self.memory.get_history()
+        decision = self.planner.plan(task, history)
         
         # Check if decision includes strategic plan from director
         if isinstance(decision, Action):
@@ -751,7 +752,7 @@ Return a final_response JSON with your analysis."""
             return await self._create_error_response(validation_error, progress_handler)
 
         goal = script_metadata.get("goal") or task
-        self.memory.add({
+        await self.memory.add({
             "type": SCRIPT_PLAN,
             "content": {
                 "goal": goal,
@@ -1231,14 +1232,14 @@ Return a final_response JSON with your analysis."""
                 "human_readable_summary": str(result),
             }
 
-        self.memory.add({"type": DELEGATION, "worker": worker_key, "task": task})
-        self.memory.add({"type": OBSERVATION, "content": result})
-        
+        await self.memory.add({"type": DELEGATION, "worker": worker_key, "task": task})
+        await self.memory.add({"type": OBSERVATION, "content": result})
+
         # Broadcast for parallel/sibling visibility
         try:
             add_global_method = getattr(self.memory, "add_global", None)
             if callable(add_global_method):
-                add_global_method({
+                await add_global_method({
                     "type": GLOBAL_OBSERVATION,
                     "from_worker": worker_key,
                     "summary": result.get("human_readable_summary") if isinstance(result, dict) else None,
@@ -1316,9 +1317,9 @@ Return a final_response JSON with your analysis."""
             tools_out.append({"name": str(name), "description": str(desc)})
         return tools_out or None
 
-    def _inject_context(self, context_text: Optional[str], manifest_text: Optional[str]) -> None:
+    async def _inject_context(self, context_text: Optional[str], manifest_text: Optional[str]) -> None:
         if context_text:
-            self.memory.add({"type": DIRECTOR_CONTEXT, "content": context_text})
+            await self.memory.add({"type": DIRECTOR_CONTEXT, "content": context_text})
             update_request_context(director_context=context_text)
             update_request_context(context=context_text)
             try:
@@ -1450,7 +1451,7 @@ Return a final_response JSON with your analysis."""
     ) -> Dict[str, Any]:
         """Handle FinalResponse from planner."""
         final_dict = final_response.model_dump()
-        self.memory.add({"type": FINAL, "content": final_response.human_readable_summary})
+        await self.memory.add({"type": FINAL, "content": final_response.human_readable_summary})
         
         end_data = build_manager_end_event(
             manager_name=self.name,
@@ -1599,7 +1600,7 @@ Return a final_response JSON with your analysis."""
         from ..services.request_context import get_from_context
         
         strategic_plan = get_from_context("strategic_plan")
-        history = self.memory.get_history()
+        history = await self.memory.get_history()
         user_messages = [
             h.get("content", "") for h in history 
             if h.get("type") == "user_message"
