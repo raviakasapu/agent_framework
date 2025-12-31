@@ -4,7 +4,8 @@
       "Bash(python -m py_compile:*)",
       "Bash(cat:*)",
       "Bash(PYTHONPATH=/Users/sree/Sites/loan-site-AI-lovable/akasa_drone/ai_agent_framework_repo/agent-framework-pypi/src python:*)",
-      "Bash(make:*)"
+      "Bash(make:*)",
+      "Bash(unzip:*)"
     ]
   }
 }
