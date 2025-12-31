@@ -16,6 +16,18 @@ This document tracks identified issues and improvements for the memory managemen
 - **File**: `memory.py:43-50`
 - **Fix**: Async-safe locking now prevents cross-job data leakage
 
+### ~~Issue #6: Context Truncation Without Warning~~ ✅ FIXED
+- **Severity**: MEDIUM
+- **Status**: FIXED
+- **Files**: All planners (StrategicPlanner, WorkerRouterPlanner, ReActPlanner, StrategicDecomposerPlanner, ManagerScriptPlanner)
+- **Fix**: Implemented YAML-based Context Configuration system:
+  - Created `src/agent_framework/configs/context_config.yaml` with configurable truncation limits
+  - Created `src/agent_framework/services/context_config.py` for loading config with ENV overrides
+  - Updated all planners to use `ContextConfig.truncate_with_logging()` method
+  - Truncation now logs: field name, planner, original size, truncated size, chars removed
+  - Adds `[TRUNCATED: N chars removed]` marker to truncated content
+  - All limits configurable via YAML or ENV variables (see `docs_source/source/guides/environment_variables.md`)
+
 ---
 
 ## Remaining Issues
@@ -43,22 +55,6 @@ This document tracks identified issues and improvements for the memory managemen
 - **File**: `planners.py:1151-1158`
 - **Problem**: Logic checks if ANY observation exists in `filtered_history` to decide whether to add task message. This is fragile and tightly coupled to `WorkerHistoryFilter` behavior.
 - **Suggested Fix**: Make the check more explicit or document the dependency
-
-### Issue #6: Context Truncation Without Warning
-- **Severity**: MEDIUM
-- **Files**: `planners.py:837-841`, `planners.py:1100-1104`, `planners.py:1677`
-- **Problem**:
-  ```python
-  plan_block = f"...{strategic_plan[:1500]}\n"  # Silent truncation
-  context_parts.append(f"...\n{str(data_model_context)[:2000]}")  # Silent
-  ```
-  - Arbitrary character limits (1500, 2000, 4000, 5000) without configurable thresholds
-  - No logging of what was truncated
-  - LLM doesn't know context was truncated, may misunderstand incomplete plans
-- **Suggested Fix**:
-  - Add logging when truncation occurs
-  - Make limits configurable via environment variables
-  - Consider adding `[TRUNCATED]` marker to truncated content
 
 ### Issue #7: Observation Truncation Loses Information
 - **Severity**: MEDIUM
@@ -131,12 +127,12 @@ This document tracks identified issues and improvements for the memory managemen
 ## Priority Recommendations
 
 ### High Priority (Fix Soon)
-1. **Issue #6: Context Truncation** - Silent information loss could cause incorrect LLM reasoning
+1. ~~**Issue #6: Context Truncation**~~ ✅ FIXED - Implemented YAML-based ContextConfig with ENV overrides
 2. **Issue #8: Inconsistent Filtering** - Violates hierarchy model, causes confusion
 
 ### Medium Priority (Fix When Possible)
 3. **Issue #4: Missing Filters** - Planners should use standard filters
-4. **Issue #7: Observation Truncation** - Add smarter truncation
+4. **Issue #7: Observation Truncation** - Add smarter truncation (logging now implemented)
 5. **Issue #9: Context Validation** - Add error handling
 
 ### Low Priority (Nice to Have)
@@ -146,17 +142,25 @@ This document tracks identified issues and improvements for the memory managemen
 
 ---
 
-## Environment Variables to Add
+## Environment Variables (Implemented)
 
-Consider adding these configurable limits:
+The following environment variables have been implemented in the Context Configuration system.
+See `docs_source/source/guides/environment_variables.md` for full documentation.
 
-| Variable | Purpose | Suggested Default |
-|----------|---------|-------------------|
-| `AGENT_STRATEGIC_PLAN_TRUNCATE_LEN` | Strategic plan truncation | 1500 |
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `AGENT_STRATEGIC_PLAN_TRUNCATE_LEN` | Strategic plan truncation | 2000 |
 | `AGENT_DIRECTOR_CONTEXT_TRUNCATE_LEN` | Director context truncation | 4000 |
-| `AGENT_DATA_MODEL_TRUNCATE_LEN` | Data model context truncation | 2000 |
-| `AGENT_PREVIOUS_OUTPUT_TRUNCATE_LEN` | Previous manager output truncation | 5000 |
-| `AGENT_TRUNCATION_LOG_ENABLED` | Log when truncation occurs | true |
+| `AGENT_DATA_MODEL_CONTEXT_TRUNCATE_LEN` | Data model context truncation | 6000 |
+| `AGENT_OBSERVATION_TRUNCATE_LEN` | Observation truncation | 1500 |
+| `AGENT_TOOL_ARGS_TRUNCATE_LEN` | Tool args truncation | 500 |
+| `AGENT_PREVIOUS_OUTPUT_TRUNCATE_LEN` | Previous output truncation | 5000 |
+| `AGENT_MANIFEST_TRUNCATE_LEN` | Manifest truncation | 6000 |
+| `AGENT_LOG_TRUNCATION` | Log truncation events | true |
+| `AGENT_MAX_CONVERSATION_TURNS` | Max conversation turns | 10 |
+| `AGENT_MAX_EXECUTION_TRACES` | Max execution traces | 20 |
+
+**Configuration File**: `src/agent_framework/configs/context_config.yaml`
 
 ---
 
