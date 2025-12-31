@@ -3,6 +3,8 @@
 # This module provides the public API for the framework.
 # Import core components from here for application use.
 
+__version__ = "0.2.0"
+
 from agent_framework.base import (
     BaseTool,
     BasePlanner,
@@ -32,6 +34,8 @@ from agent_framework.decorators import tool, FunctionalTool
 
 # Public API
 __all__ = [
+    # Version
+    "__version__",
     # Decorators
     "tool",
     "FunctionalTool",
