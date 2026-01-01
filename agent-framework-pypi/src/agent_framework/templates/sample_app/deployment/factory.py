@@ -234,7 +234,9 @@ class AgentFactory:
                     desc["parameters"] = schema.model_json_schema()
             tool_descriptions.append(desc)
 
-        planner_config["tool_descriptions"] = tool_descriptions
+        # Only add tool_descriptions for planners that need it (not router planners)
+        if planner_type not in ("WorkerRouterPlanner",):
+            planner_config["tool_descriptions"] = tool_descriptions
 
         # Handle worker_keys for router planners
         if "worker_keys" in planner_config:
