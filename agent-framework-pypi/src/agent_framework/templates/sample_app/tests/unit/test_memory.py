@@ -471,3 +471,130 @@ class TestMemoryEdgeCases:
             shared_memory.add({"role": "user", "content": f"msg{i}"})
             history = shared_memory.get_history()
             assert len(history) == i + 1
+
+
+# =============================================================================
+# G. Memory Presets Tests
+# =============================================================================
+
+class TestMemoryPresets:
+    """Test memory preset functionality."""
+
+    def test_list_memory_presets(self):
+        """Should list available presets."""
+        from agent_framework.components.memory_presets import list_memory_presets
+
+        presets = list_memory_presets()
+        assert "standalone" in presets
+        assert "worker" in presets
+        assert "manager" in presets
+
+    def test_standalone_preset_creates_inmemory(self):
+        """Standalone preset should create InMemoryMemory."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        memory = get_memory_preset("standalone", {"agent_name": "TestAgent"})
+
+        assert memory is not None
+        assert hasattr(memory, 'add')
+        assert hasattr(memory, 'get_history')
+
+    def test_worker_preset_creates_shared_memory(self):
+        """Worker preset should create SharedInMemoryMemory."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        memory = get_memory_preset("worker", {
+            "agent_name": "TestWorker",
+            "namespace": "test-job"
+        })
+
+        assert memory is not None
+        assert hasattr(memory, 'add_global')
+
+    def test_manager_preset_creates_hierarchical_memory(self):
+        """Manager preset should create HierarchicalSharedMemory."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        memory = get_memory_preset("manager", {
+            "agent_name": "TestManager",
+            "namespace": "test-job",
+            "subordinates": ["worker-1", "worker-2"]
+        })
+
+        assert memory is not None
+        assert hasattr(memory, 'add_global')
+
+    def test_preset_auto_derives_agent_key(self):
+        """Preset should auto-derive agent_key from agent_name."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        memory = get_memory_preset("worker", {
+            "agent_name": "Research-Worker"
+        })
+
+        # Should normalize to lowercase with underscores
+        assert memory._agent_key == "research_worker"
+
+    def test_preset_uses_job_id_from_env(self, monkeypatch):
+        """Preset should use JOB_ID from environment."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        monkeypatch.setenv("JOB_ID", "env-job-123")
+
+        memory = get_memory_preset("worker", {"agent_name": "Test"})
+
+        assert memory._namespace == "env-job-123"
+
+    def test_preset_context_overrides_env(self, monkeypatch):
+        """Context namespace should override environment."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        monkeypatch.setenv("JOB_ID", "env-job")
+
+        memory = get_memory_preset("worker", {
+            "agent_name": "Test",
+            "namespace": "context-job"
+        })
+
+        assert memory._namespace == "context-job"
+
+    def test_unknown_preset_raises_error(self):
+        """Unknown preset should raise ValueError."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        with pytest.raises(ValueError, match="Unknown memory preset"):
+            get_memory_preset("nonexistent", {})
+
+    def test_manager_normalizes_subordinates(self):
+        """Manager preset should normalize subordinate names."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        memory = get_memory_preset("manager", {
+            "agent_name": "Manager",
+            "subordinates": ["Research-Worker", "Task Worker"]
+        })
+
+        assert "research_worker" in memory._subordinates
+        assert "task_worker" in memory._subordinates
+
+    def test_describe_preset(self):
+        """Should return description for preset."""
+        from agent_framework.components.memory_presets import describe_preset
+
+        desc = describe_preset("worker")
+        assert "worker" in desc.lower() or "shared" in desc.lower()
+
+    def test_worker_preset_shares_namespace(self):
+        """Workers with same namespace should share global updates."""
+        from agent_framework.components.memory_presets import get_memory_preset
+
+        ctx = {"namespace": "shared-job"}
+        worker1 = get_memory_preset("worker", {**ctx, "agent_name": "Worker1"})
+        worker2 = get_memory_preset("worker", {**ctx, "agent_name": "Worker2"})
+
+        worker1.add_global({"from": "worker1", "data": "shared"})
+
+        # Worker2 should see worker1's global update
+        updates = worker2.get_global_updates()
+        assert len(updates) == 1
+        assert updates[0]["from"] == "worker1"

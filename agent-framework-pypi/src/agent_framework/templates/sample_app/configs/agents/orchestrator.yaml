@@ -58,10 +58,10 @@ spec:
         - "Calculate 25 * 4" -> research-worker
 
   memory:
-    type: SharedInMemoryMemory
-    config:
-      namespace: ${JOB_ID:-default}
-      agent_key: orchestrator
+    $preset: manager
+    # Subordinates auto-derived from workers list
+    # namespace auto-derived from JOB_ID
+    # agent_key auto-derived from metadata.name
 
   workers:
     - name: research-worker
